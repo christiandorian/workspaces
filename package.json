@@ -1,9 +1,13 @@
 {
-  "name": "flashcard-app",
+  "name": "design-system-template",
   "version": "1.0.0",
-  "description": "Flashcard study app with AI integration",
+  "description": "A design system template with pre-built components and design tokens",
   "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
   "dependencies": {
-    "openai": "^4.20.1"
+    "express": "^4.18.2"
   }
 }
