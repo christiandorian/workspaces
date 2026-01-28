@@ -1,13 +1,16 @@
 {
-  "name": "design-system-template",
+  "name": "q-chat",
   "version": "1.0.0",
-  "description": "A design system template with pre-built components and design tokens",
+  "description": "Q-Chat - Quizlet AI Study Assistant powered by OpenAI",
   "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2",
+    "openai": "^6.16.0",
+    "pdfjs-dist": "^5.4.530"
   }
 }

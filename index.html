@@ -3,13 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Design System Template</title>
+    <title>Q-Chat - Quizlet</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preload" href="fonts/HurmeGeometricSans2-Regular.otf" as="font" type="font/otf" crossorigin>
     <link rel="preload" href="fonts/HurmeGeometricSans2-SemiBold.otf" as="font" type="font/otf" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,-25&display=block" rel="stylesheet">
+    <!-- Material Icons Outlined - Reference: https://fonts.google.com/icons?icon.style=Outlined -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    
+    <!-- PDF.js for PDF parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Configure PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
 </head>
 <body>
     <!-- Header / Top Navigation -->
@@ -40,8 +48,158 @@
     </header>
 
     <!-- Main Content Area -->
-    <main class="main-content">
-        <!-- Add your content here -->
+    <main class="main-content notebook-container">
+        <!-- Left Column: Sources -->
+        <aside class="notebook-column sources-column">
+            <div class="column-header">
+                <h2 class="column-title editable-title" id="workspace-title" contenteditable="true" spellcheck="false">Untitled notebook</h2>
+                <button class="icon-btn collapse-btn" aria-label="Collapse">
+                    <span class="material-symbols-rounded">chevron_left</span>
+                </button>
+            </div>
+            
+            <div class="column-content">
+                <!-- Sources Section -->
+                <div class="sources-section">
+                    <h3 class="section-title">Sources</h3>
+                    
+                    <div class="sources-empty-state">
+                        <span class="material-symbols-rounded empty-icon">description</span>
+                        <p class="empty-description">No sources added yet</p>
+                    </div>
+                    
+                    <button class="add-sources-btn">
+                        <span class="material-symbols-rounded">add</span>
+                        Add sources
+                    </button>
+                </div>
+                
+                <!-- Recommended Sources Section -->
+                <div class="recommended-sources-section" id="recommended-sources" style="display: none;">
+                    <div class="recommended-header">
+                        <h3 class="section-title">Recommended sources</h3>
+                        <button class="icon-btn close-recommended" id="close-recommended">
+                            <span class="material-symbols-rounded">close</span>
+                        </button>
+                    </div>
+                    
+                    <div class="recommended-list" id="recommended-list">
+                        <!-- Recommended sources will be inserted here -->
+                    </div>
+                    
+                    <button class="see-more-btn" id="see-more-recommended">
+                        See more
+                    </button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Center Column: Chat -->
+        <section class="notebook-column chat-column">
+            <div class="column-header">
+                <h2 class="column-title">Chat</h2>
+                <div class="chat-header-actions">
+                    <button class="icon-btn" aria-label="Settings">
+                        <span class="material-symbols-rounded">tune</span>
+                    </button>
+                    <button class="icon-btn" aria-label="More">
+                        <span class="material-symbols-rounded">more_vert</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="column-content chat-content">
+                <div class="chat-empty-state">
+                    <span class="material-symbols-rounded upload-icon">upload</span>
+                    <h3 class="empty-title">Add a source to get started</h3>
+                    <button class="upload-source-btn">Upload a source</button>
+                </div>
+            </div>
+            
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <input type="text" placeholder="Upload a source to get started" class="chat-input" disabled>
+                    <div class="chat-input-meta">
+                        <span class="source-count">0 sources</span>
+                        <button class="chat-submit-btn" aria-label="Send" disabled>
+                            <span class="material-symbols-rounded">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Right Column: Studio -->
+        <aside class="notebook-column studio-column">
+            <div class="column-header">
+                <h2 class="column-title">Study</h2>
+                <button class="icon-btn collapse-btn" aria-label="Collapse">
+                    <span class="material-symbols-rounded">chevron_right</span>
+                </button>
+            </div>
+            
+            <div class="column-content studio-content">
+                <div class="studio-grid">
+                    <button class="studio-card" disabled>
+                        <span class="material-symbols-rounded studio-icon">graphic_eq</span>
+                        <span class="studio-label">Audio Overview</span>
+                    </button>
+                    
+                    <button class="studio-card" disabled>
+                        <span class="material-symbols-rounded studio-icon">videocam</span>
+                        <span class="studio-label">Video Overview</span>
+                    </button>
+                    
+                    <button class="studio-card" disabled>
+                        <span class="material-symbols-rounded studio-icon">account_tree</span>
+                        <span class="studio-label">Mind Map</span>
+                    </button>
+                    
+                    <button class="studio-card" disabled>
+                        <span class="material-symbols-rounded studio-icon">description</span>
+                        <span class="studio-label">Reports</span>
+                    </button>
+                    
+                    <button class="studio-card" disabled>
+                        <span class="material-symbols-rounded studio-icon">style</span>
+                        <span class="studio-label">Flashcards</span>
+                    </button>
+                    
+                    <button class="studio-card" disabled>
+                        <span class="material-symbols-rounded studio-icon">help_outline</span>
+                        <span class="studio-label">Quiz</span>
+                    </button>
+                    
+                    <button class="studio-card" disabled>
+                        <span class="material-symbols-rounded studio-icon">insert_chart</span>
+                        <span class="studio-label">Infographic</span>
+                    </button>
+                    
+                    <button class="studio-card" disabled>
+                        <span class="material-symbols-rounded studio-icon">slideshow</span>
+                        <span class="studio-label">Slide Deck</span>
+                    </button>
+                    
+                    <button class="studio-card" disabled>
+                        <span class="material-symbols-rounded studio-icon">table_chart</span>
+                        <span class="studio-label">Data Table</span>
+                    </button>
+                </div>
+                
+                <div class="studio-footer">
+                    <span class="material-symbols-rounded magic-icon">build</span>
+                    <p class="studio-footer-text">
+                        <strong>Study output will be saved here.</strong><br>
+                        After adding sources, click to add Audio Overview, Study Guide, Mind Map, and more!
+                    </p>
+                </div>
+                
+                <button class="add-note-btn">
+                    <span class="material-symbols-rounded">create</span>
+                    Add note
+                </button>
+            </div>
+        </aside>
     </main>
 
     <!-- Debug Menu Modal -->
@@ -55,6 +213,15 @@
             <div class="debug-modal-content">
                 <div class="debug-modal-header">
                     <h2 class="debug-modal-title">Debug menu</h2>
+                </div>
+                
+                <div class="debug-modal-section">
+                    <h3 class="debug-section-title">Data Management</h3>
+                    <p class="debug-section-description">Clear all sources, chat history, and reset to empty state.</p>
+                    <button class="debug-reset-btn" id="debug-reset-btn">
+                        <span class="material-symbols-rounded">restart_alt</span>
+                        Reset all
+                    </button>
                 </div>
             </div>
         </div>
