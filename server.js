@@ -84,6 +84,78 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
+// Generate recommendations endpoint
+app.post('/api/generate-recommendations', async (req, res) => {
+    try {
+        const { source } = req.body;
+
+        if (!source) {
+            return res.status(400).json({ error: 'Source is required' });
+        }
+
+        // Generate recommendations based on the source
+        const prompt = `Based on this study material titled "${source.name}", suggest 3 related Quizlet study sets that would help a student learn this topic better. 
+
+Material preview: ${source.contentPreview || source.content?.substring(0, 500) || 'No content available'}
+
+Return a JSON array with objects containing:
+- title: The name of the recommended study set
+- type: Either "flashcards", "notes", or "textbook"
+- meta: A brief description (e.g., "50 terms • Created by Quizlet")
+- description: What this study set covers
+
+Make the recommendations relevant and helpful.`;
+
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are a helpful study assistant that recommends relevant Quizlet study sets. Always return valid JSON.'
+                },
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 800
+        });
+
+        let recommendations = [];
+        try {
+            const content = completion.choices[0].message.content;
+            // Try to parse JSON from the response
+            const jsonMatch = content.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                recommendations = JSON.parse(jsonMatch[0]);
+                // Add IDs to recommendations
+                recommendations = recommendations.map((rec, idx) => ({
+                    id: `rec-${Date.now()}-${idx}`,
+                    url: `https://quizlet.com/`, // Placeholder URL
+                    ...rec
+                }));
+            }
+        } catch (parseError) {
+            console.error('Error parsing recommendations:', parseError);
+            // Return empty array if parsing fails
+            recommendations = [];
+        }
+
+        res.json({
+            recommendations,
+            usage: completion.usage
+        });
+
+    } catch (error) {
+        console.error('Recommendations Generation Error:', error);
+        res.status(500).json({ 
+            error: 'Failed to generate recommendations',
+            details: error.message 
+        });
+    }
+});
+
 // Generate study materials endpoint
 app.post('/api/generate-study-material', async (req, res) => {
     try {
