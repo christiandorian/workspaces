@@ -291,41 +291,47 @@ function handleFileUpload() {
  * Process uploaded file
  */
 async function processFile(file) {
-    const fileType = file.type || getFileTypeFromName(file.name);
-    
-    const source = {
-        id: `source-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: file.name,
-        type: fileType,
-        size: file.size,
-        uploadedAt: new Date().toISOString(),
-        content: null,
-        contentPreview: null,
-        selected: true // Auto-select newly uploaded sources
-    };
-    
-    try {
-        if (fileType.includes('pdf')) {
-            // Extract text from PDF
-            const text = await extractTextFromPDF(file);
-            source.content = text;
-            source.contentPreview = text.substring(0, 200) + (text.length > 200 ? '...' : '');
-        } else if (fileType.includes('text') || fileType.includes('markdown')) {
-            // Read text files
-            const text = await readTextFile(file);
-            source.content = text;
-            source.contentPreview = text.substring(0, 200) + (text.length > 200 ? '...' : '');
-        } else {
-            // For other file types, just store basic info
-            source.contentPreview = 'Document uploaded successfully';
+    return new Promise(async (resolve) => {
+        const fileType = file.type || getFileTypeFromName(file.name);
+        
+        const source = {
+            id: `source-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: file.name,
+            type: fileType,
+            size: file.size,
+            uploadedAt: new Date().toISOString(),
+            content: null,
+            contentPreview: null,
+            selected: true // Auto-select newly uploaded sources
+        };
+        
+        try {
+            if (fileType.includes('pdf')) {
+                // Extract text from PDF
+                console.log('Processing PDF:', file.name);
+                const text = await extractTextFromPDF(file);
+                console.log('PDF extracted, text length:', text.length);
+                source.content = text;
+                source.contentPreview = text.substring(0, 200) + (text.length > 200 ? '...' : '');
+            } else if (fileType.includes('text') || fileType.includes('markdown')) {
+                // Read text files
+                const text = await readTextFile(file);
+                source.content = text;
+                source.contentPreview = text.substring(0, 200) + (text.length > 200 ? '...' : '');
+            } else {
+                // For other file types, just store basic info
+                source.contentPreview = 'Document uploaded successfully';
+            }
+        } catch (error) {
+            console.error('Error processing file:', file.name, error);
+            source.contentPreview = 'Error reading file content';
         }
-    } catch (error) {
-        console.error('Error processing file:', file.name, error);
-        source.contentPreview = 'Error reading file content';
-    }
-    
-    notebookState.sources.push(source);
-    notebookState.selectedSources.add(source.id);
+        
+        notebookState.sources.push(source);
+        notebookState.selectedSources.add(source.id);
+        console.log('Source added:', source.name, 'Total sources:', notebookState.sources.length);
+        resolve();
+    });
 }
 
 /**
@@ -345,11 +351,21 @@ function readTextFile(file) {
  */
 async function extractTextFromPDF(file) {
     try {
+        // Check if PDF.js is loaded
+        if (typeof pdfjsLib === 'undefined') {
+            throw new Error('PDF.js library not loaded');
+        }
+        
+        console.log('Starting PDF extraction for:', file.name);
+        
         // Read file as ArrayBuffer
         const arrayBuffer = await file.arrayBuffer();
+        console.log('ArrayBuffer size:', arrayBuffer.byteLength);
         
         // Load PDF document
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        console.log('PDF loaded, pages:', pdf.numPages);
         
         let fullText = '';
         
@@ -359,12 +375,14 @@ async function extractTextFromPDF(file) {
             const textContent = await page.getTextContent();
             const pageText = textContent.items.map(item => item.str).join(' ');
             fullText += pageText + '\n\n';
+            console.log(`Page ${i} extracted, length: ${pageText.length}`);
         }
         
+        console.log('Total PDF text extracted:', fullText.length, 'characters');
         return fullText.trim();
     } catch (error) {
         console.error('Error extracting PDF text:', error);
-        throw new Error('Failed to extract text from PDF');
+        throw new Error('Failed to extract text from PDF: ' + error.message);
     }
 }
 
@@ -387,28 +405,45 @@ function getFileTypeFromName(filename) {
  * Render sources in the sidebar
  */
 function renderSources() {
-    const container = document.querySelector('.sources-empty-state');
+    console.log('renderSources called, sources count:', notebookState.sources.length);
     
-    if (!container) return;
+    const emptyState = document.querySelector('.sources-empty-state');
+    const sourcesSection = document.querySelector('.sources-section');
+    
+    if (!emptyState || !sourcesSection) {
+        console.error('Sources containers not found');
+        return;
+    }
     
     if (notebookState.sources.length === 0) {
         // Show empty state
-        container.innerHTML = `
+        emptyState.innerHTML = `
             <span class="material-symbols-rounded empty-icon">description</span>
-            <h3 class="empty-title">Saved sources will appear here</h3>
-            <p class="empty-description">Click Add source above to add PDFs, websites, text, videos, or audio files. Or import a file directly from Google Drive.</p>
+            <p class="empty-description">No sources added yet</p>
         `;
-        container.style.display = 'block';
+        emptyState.style.display = 'block';
+        
+        // Remove sources list if it exists
+        const existingList = document.querySelector('.sources-list');
+        if (existingList) {
+            existingList.remove();
+        }
     } else {
-        // Show sources list
-        container.style.display = 'none';
+        // Hide empty state
+        emptyState.style.display = 'none';
         
         // Check if sources list already exists
         let sourcesList = document.querySelector('.sources-list');
         if (!sourcesList) {
             sourcesList = document.createElement('div');
             sourcesList.className = 'sources-list';
-            container.parentNode.appendChild(sourcesList);
+            // Insert before the add button
+            const addButton = sourcesSection.querySelector('.add-sources-btn');
+            if (addButton) {
+                sourcesSection.insertBefore(sourcesList, addButton);
+            } else {
+                sourcesSection.appendChild(sourcesList);
+            }
         }
         
         // Render select all option
@@ -461,6 +496,7 @@ function renderSources() {
         }).join('');
         
         sourcesList.innerHTML = selectAllHtml + sourcesHtml;
+        console.log('Sources rendered:', notebookState.sources.length);
     }
 }
 
